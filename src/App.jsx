@@ -22,25 +22,29 @@ const productQuery = (source, query) => (
   source.toLocaleLowerCase().includes(query.toLocaleLowerCase().trim())
 );
 
-function getVisibleProducts(activeUserID, query) {
-    return products.filter(product => {
-      if (activeUserID !== 0) {
-        return product.user.id === activeUserID;
-      }
+function getVisibleProducts(activeUserID, query, activeCategory) {
+  return (
+    products.filter((product) => {
+      const isQuery = query ? productQuery(product.name, query) : true;
+      const isUser = activeUserID ? product.user.id === activeUserID : true;
+      const isCategory = activeCategory ? product.category.id === activeCategory : true;
 
-      if(query) {
-        return productQuery(product.name, query);
-      }
-
-      return products;
-    });
-};
+      return isQuery && isUser && isCategory;
+    }));
+}
 
 export const App = () => {
   const [activeUserID, setActiveUserID] = useState(0);
+  const [activeCategory, setActiveCategory] = useState(0);
   const [query, setQuery] = useState('');
 
-  const visibleProducts = getVisibleProducts(activeUserID, query);
+  const visibleProducts = getVisibleProducts(activeUserID, query, activeCategory);
+
+  const handleReset = () => {
+    setActiveUserID(0);
+    setActiveCategory(0);
+    setQuery('');
+  };
 
   return (
     <div className="section">
@@ -55,31 +59,27 @@ export const App = () => {
               <a
                 data-cy="FilterAllUsers"
                 href="#/"
-                onClick={(event) => setActiveUserID(0)}
-                className={classNames ({
-                  'is-active': activeUserID === 0,
-                }
-                )}
+                onClick={event => setActiveUserID(0)}
+                className={classNames({
+                  'is-active': !activeUserID,
+                })}
               >
                 All
               </a>
 
-              {usersFromServer.map(({ name, id }) => {
-
-                return (
-                  <a
-                    data-cy="FilterUser"
-                    href="#/"
-                    key={id}
-                    onClick={(event) => setActiveUserID(id)}
-                    className={classNames ({
-                      'is-active': activeUserID === id,
-                    })}
-                  >
-                    {name}
-                  </a>
-                );
-                })}
+              {usersFromServer.map(({ name, id }) => (
+                <a
+                  data-cy="FilterUser"
+                  href="#/"
+                  key={id}
+                  onClick={event => setActiveUserID(id)}
+                  className={classNames({
+                    'is-active': activeUserID === id,
+                  })}
+                >
+                  {name}
+                </a>
+              ))}
 
             </p>
 
@@ -91,21 +91,25 @@ export const App = () => {
                   className="input"
                   placeholder="Search"
                   value={query}
-                  onChange={(event) => setQuery(event.target.value)}
+                  onChange={event => setQuery(event.target.value)}
                 />
 
                 <span className="icon is-left">
                   <i className="fas fa-search" aria-hidden="true" />
                 </span>
 
-                <span className="icon is-right">
-                  {/* eslint-disable-next-line jsx-a11y/control-has-associated-label */}
-                  <button
-                    data-cy="ClearButton"
-                    type="button"
-                    className="delete"
-                  />
-                </span>
+                {query && (
+                  <span className="icon is-right">
+                    {/* eslint-disable-next-line jsx-a11y/control-has-associated-label */}
+                    <button
+                      data-cy="ClearButton"
+                      type="button"
+                      className="delete"
+                      onClick={event => setQuery('')}
+                    />
+                  </span>
+                )}
+
               </p>
             </div>
 
@@ -114,40 +118,22 @@ export const App = () => {
                 href="#/"
                 data-cy="AllCategories"
                 className="button is-success mr-6 is-outlined"
+                onClick={event => setActiveCategory(0)}
               >
                 All
               </a>
 
-              <a
-                data-cy="Category"
-                className="button mr-2 my-1 is-info"
-                href="#/"
-              >
-                Category 1
-              </a>
-
-              <a
-                data-cy="Category"
-                className="button mr-2 my-1"
-                href="#/"
-              >
-                Category 2
-              </a>
-
-              <a
-                data-cy="Category"
-                className="button mr-2 my-1 is-info"
-                href="#/"
-              >
-                Category 3
-              </a>
-              <a
-                data-cy="Category"
-                className="button mr-2 my-1"
-                href="#/"
-              >
-                Category 4
-              </a>
+              {categoriesFromServer.map(({ title, id }) => (
+                <a
+                  data-cy="Category"
+                  className={classNames('button mr-2 my-1', { 'is-info': activeCategory === id })}
+                  href="#/"
+                  key={id}
+                  onClick={event => setActiveCategory(id)}
+                >
+                  {title}
+                </a>
+              ))}
             </div>
 
             <div className="panel-block">
@@ -155,6 +141,7 @@ export const App = () => {
                 data-cy="ResetAllButton"
                 href="#/"
                 className="button is-link is-outlined is-fullwidth"
+                onClick={handleReset}
               >
                 Reset all filters
               </a>
@@ -163,9 +150,11 @@ export const App = () => {
         </div>
 
         <div className="box table-container">
-          <p data-cy="NoMatchingMessage">
-            No products matching selected criteria
-          </p>
+          {!visibleProducts.length && (
+            <p data-cy="NoMatchingMessage">
+              No products matching selected criteria
+            </p>
+          )}
 
           <table
             data-cy="ProductTable"
@@ -224,29 +213,26 @@ export const App = () => {
             </thead>
 
             <tbody>
-              {visibleProducts.map(({ id, name, category, user, sex }) => {
+              {visibleProducts.map(({ id, name, category, user }) => (
+                <tr data-cy="Product" key={id}>
+                  <td className="has-text-weight-bold" data-cy="ProductId">
+                    {id}
+                  </td>
 
-                return (
-                  <tr data-cy="Product" key={id}>
-                    <td className="has-text-weight-bold" data-cy="ProductId">
-                      {id}
-                    </td>
+                  <td data-cy="ProductName">{name}</td>
+                  <td data-cy="ProductCategory">{`${category.icon} - ${category.title}`}</td>
 
-                    <td data-cy="ProductName">{name}</td>
-                    <td data-cy="ProductCategory">{`${category.icon} - ${category.title}`}</td>
-
-                    <td
-                      data-cy="ProductUser"
-                      className={classNames({
-                        'has-text-link': user.sex === 'm',
-                        'has-text-danger': user.sex === 'f',
-                      })}
-                    >
-                      {user.name}
-                    </td>
-                  </tr>
-                );
-              })}
+                  <td
+                    data-cy="ProductUser"
+                    className={classNames({
+                      'has-text-link': user.sex === 'm',
+                      'has-text-danger': user.sex === 'f',
+                    })}
+                  >
+                    {user.name}
+                  </td>
+                </tr>
+              ))}
 
             </tbody>
           </table>
