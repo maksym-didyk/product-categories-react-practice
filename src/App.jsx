@@ -18,18 +18,29 @@ const products = productsFromServer.map((product) => {
   );
 });
 
-function getVisibleProducts(activeUserID) {
-  if (activeUserID !== 0) {
-    return products.filter(product => product.user.id === activeUserID);
-  }
+const productQuery = (source) => (
+  source.toLocaleLowerCase().includes(query.toLocaleLowerCase().trim())
+);
 
-  return products;
+function getVisibleProducts(activeUserID, query) {
+    return products.filter(product => {
+      if (activeUserID !== 0) {
+        return product.user.id === activeUserID;
+      }
+
+      if(query) {
+        return productQuery(product.name);
+      }
+
+      return products;
+    });
 };
 
 export const App = () => {
   const [activeUserID, setActiveUserID] = useState(0);
+  const [query, setQuery] = useState('');
 
-  const visibleProducts = getVisibleProducts(activeUserID);
+  const visibleProducts = getVisibleProducts(activeUserID, query);
 
   return (
     <div className="section">
@@ -79,7 +90,8 @@ export const App = () => {
                   type="text"
                   className="input"
                   placeholder="Search"
-                  value="qwe"
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
                 />
 
                 <span className="icon is-left">
