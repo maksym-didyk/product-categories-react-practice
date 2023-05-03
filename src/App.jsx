@@ -1,10 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import './App.scss';
+import classNames from 'classnames';
 
 import usersFromServer from './api/users';
 import categoriesFromServer from './api/categories';
 import productsFromServer from './api/products';
-import classNames from 'classnames';
 
 const products = productsFromServer.map((product) => {
   const category = categoriesFromServer.find(cat => cat.id === product.categoryId); // find by product.categoryId
@@ -18,14 +18,19 @@ const products = productsFromServer.map((product) => {
   );
 });
 
-// const preparedProducts = productsFromServer.map(product => ({
-//   ...product,
-//   category: categoriesFromServer.find(category => category.id === product.categoryId),
-//   user: usersFromServer.find(user => user.id === category.ownerId),
-// }
-// ));
+function getVisibleProducts(activeUserID) {
+  if (activeUserID !== 0) {
+    return products.filter(product => product.user.id === activeUserID);
+  }
+
+  return products;
+};
 
 export const App = () => {
+  const [activeUserID, setActiveUserID] = useState(0);
+
+  const visibleProducts = getVisibleProducts(activeUserID);
+
   return (
     <div className="section">
       <div className="container">
@@ -39,31 +44,32 @@ export const App = () => {
               <a
                 data-cy="FilterAllUsers"
                 href="#/"
+                onClick={(event) => setActiveUserID(0)}
+                className={classNames ({
+                  'is-active': activeUserID === 0,
+                }
+                )}
               >
                 All
               </a>
 
-              <a
-                data-cy="FilterUser"
-                href="#/"
-              >
-                User 1
-              </a>
+              {usersFromServer.map(({ name, id }) => {
 
-              <a
-                data-cy="FilterUser"
-                href="#/"
-                className="is-active"
-              >
-                User 2
-              </a>
+                return (
+                  <a
+                    data-cy="FilterUser"
+                    href="#/"
+                    key={id}
+                    onClick={(event) => setActiveUserID(id)}
+                    className={classNames ({
+                      'is-active': activeUserID === id,
+                    })}
+                  >
+                    {name}
+                  </a>
+                );
+                })}
 
-              <a
-                data-cy="FilterUser"
-                href="#/"
-              >
-                User 3
-              </a>
             </p>
 
             <div className="panel-block">
@@ -206,10 +212,10 @@ export const App = () => {
             </thead>
 
             <tbody>
-              {products.map(({ id, name, category, user, sex }) => {
+              {visibleProducts.map(({ id, name, category, user, sex }) => {
 
                 return (
-                  <tr data-cy="Product">
+                  <tr data-cy="Product" key={id}>
                     <td className="has-text-weight-bold" data-cy="ProductId">
                       {id}
                     </td>
@@ -222,8 +228,7 @@ export const App = () => {
                       className={classNames({
                         'has-text-link': user.sex === 'm',
                         'has-text-danger': user.sex === 'f',
-                      }
-                      )}
+                      })}
                     >
                       {user.name}
                     </td>
