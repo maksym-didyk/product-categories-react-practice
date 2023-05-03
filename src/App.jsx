@@ -18,7 +18,7 @@ const products = productsFromServer.map((product) => {
   );
 });
 
-const productQuery = (source) => (
+const productQuery = (source, query) => (
   source.toLocaleLowerCase().includes(query.toLocaleLowerCase().trim())
 );
 
@@ -29,7 +29,7 @@ function getVisibleProducts(activeUserID, query) {
       }
 
       if(query) {
-        return productQuery(product.name);
+        return productQuery(product.name, query);
       }
 
       return products;
